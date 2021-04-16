@@ -2,26 +2,16 @@
 Get phone number details from apilayer.net and make SMS getaway address as well,
 phone number read from text file and output as a text JSON and CSV files.
 can check 250 number at once.
-
-
 Requriments:
-
 certifi==2020.12.5
 chardet==4.0.0
 idna==2.10
 requests==2.25.1
 urllib3==1.26.4
-
-
 Using process:
-
 just keep phone numbers in a text file name number.txt(must be inside of a same directory/folder
-
 then run python dumpPhoneNumberDetails.py  (windows)
-
 then run python3 dumpPhoneNumberDetails.py  (Linux)
-
-
 enjoy!
 
 '''
@@ -128,7 +118,7 @@ def save_to_json(midst):
 
 '''
 Send The API Request
-
+and give as json return with dist format
 '''
 
 
@@ -143,27 +133,24 @@ Main Code Start
 
 '''
 
-apikey = 'Your API Key'  # Get From apilayer.net
-# phoneNumber = ''
+apikey = '90c80b7b95a39a74732d12bf87dd7876'  # Get From apilayer.net
+# phoneNumber = '8178816864'
 country = 'US'  # To Change Country Code
 count = 0
-with open('numbers.txt', 'r') as f:
-    phoneNumbers = [line.strip() for line in f]
+with open('numbers.txt', 'r') as phone:
 
-for number in phoneNumbers:
+    for number in phone:
+        myInfo = send_request(apikey, number, country)
+        if not myInfo['valid']:
+            if count == 0:
+                country = ''
+                myInfo = send_request(apikey, number, country)
+                count += 1
+            else:
+                continue
 
-    myInfo = send_request(apikey, number, country)
+        sms_gateway_address = find_carrier(number, myInfo['carrier'])
 
-    if not myInfo['valid']:
-        if count == 0:
-            country = ''
-            myInfo = send_request(apikey, number, country)
-            count += 1
-        else:
-            continue
+        myInfo['sms_gateway_address'] = sms_gateway_address
 
-    sms_gateway_address = find_carrier(number, myInfo['carrier'])
-
-    myInfo['sms_gateway_address'] = sms_gateway_address
-
-    save_to_text(myInfo, sms_gateway_address)
+        save_to_text(myInfo, sms_gateway_address)
