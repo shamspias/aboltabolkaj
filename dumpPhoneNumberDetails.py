@@ -1,3 +1,32 @@
+'''
+Get phone number details from apilayer.net and make SMS getaway address as well,
+phone number read from text file and output as a text JSON and CSV files.
+can check 250 number at once.
+
+
+Requriments:
+
+certifi==2020.12.5
+chardet==4.0.0
+idna==2.10
+requests==2.25.1
+urllib3==1.26.4
+
+
+Using process:
+
+just keep phone numbers in a text file name number.txt(must be inside of a same directory/folder
+
+then run python dumpPhoneNumberDetails.py  (windows)
+
+then run python3 dumpPhoneNumberDetails.py  (Linux)
+
+
+enjoy!
+
+'''
+
+
 import requests
 import json
 import csv
