@@ -133,8 +133,7 @@ Main Code Start
 
 '''
 
-apikey = '90c80b7b95a39a74732d12bf87dd7876'  # Get From apilayer.net
-# phoneNumber = '8178816864'
+apikey = ''  # Get From apilayer.net
 country = 'US'  # To Change Country Code
 count = 0
 with open('numbers.txt', 'r') as phone:
