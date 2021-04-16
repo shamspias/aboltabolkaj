@@ -20,7 +20,6 @@ enjoy!
 
 """
 
-
 import requests
 import json
 import csv
@@ -83,12 +82,12 @@ Save in a Text File
 '''
 
 
-def save_to_text(midst, sms_gateway_address):
+def save_to_text(midst, sms):
     with open("dict.txt", "a") as information:
         information.write(str(midst) + '\n')
 
     with open("new.txt", "a") as agd:
-        agd.write(str(sms_gateway_address) + '\n')
+        agd.write(str(sms) + '\n')
 
 
 '''
@@ -140,10 +139,11 @@ Main Code Start
 apikey = 'Your API Access Key'  # Get From apilayer.net
 country = 'US'  # To Change Country Code
 count = 0
-with open('numbers.txt', 'r') as phone:
-
-    for number in phone:
+with open('numbers.txt', 'r') as phones:
+    for number in phones:
+        number = number[:-1]  # Remove extra new line
         myInfo = send_request(apikey, number, country)
+
         if not myInfo['valid']:
             if count == 0:
                 country = ''
