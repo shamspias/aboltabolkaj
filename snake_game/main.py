@@ -1,3 +1,4 @@
+import os
 import pygame
 from game import SnakeGame
 from agent import Agent
@@ -5,37 +6,30 @@ from agent import Agent
 
 def main():
     """
-    Main function to run the training loop.
+    Run the game with a trained agent.
     """
     pygame.init()
-    game = SnakeGame()
+    game = SnakeGame(render=True)
     agent = Agent()
 
-    n_episodes = 1000  # Adjust the number of episodes for training.
-    for episode in range(n_episodes):
+    if os.path.exists("qtable_trained.npy"):
+        agent.load_model("qtable_trained.npy")
+        print("Loaded trained Q-table.")
+        # Force a greedy policy for evaluation.
+        agent.epsilon = agent.epsilon_min
+    else:
+        print("No trained model found. Running with an untrained agent.")
+
+    while True:
         game.reset()
         state = agent.get_state(game)
-        total_reward = 0
-
         while True:
-            # Get action from agent.
             action = agent.get_action(state)
-            # Perform action and get new state and reward.
             reward, done, score = game.play_step(action)
-            state_next = agent.get_state(game)
-            # Train agent with the recent experience.
-            agent.train_short_memory(state, action, reward, state_next, done)
-            state = state_next
-            total_reward += reward
-
+            state = agent.get_state(game)
             if done:
-                print(f"Episode {episode + 1}: Score: {score}, Total Reward: {total_reward}, "
-                      f"Epsilon: {agent.epsilon:.3f}")
+                print(f"Score: {score}")
                 break
-
-    # Save the Q-table at the end of training.
-    agent.save_model()
-    pygame.quit()
 
 
 if __name__ == "__main__":
