@@ -5,84 +5,78 @@ from game import SnakeGame
 
 class Agent:
     """
-    Q-Learning Agent for the Snake game.
+    Q-Learning agent for Snake.
     """
 
-    def __init__(self, lr=0.1, gamma=0.9, epsilon=1.0,
-                 epsilon_decay=0.995, epsilon_min=0.01):
+    def __init__(self, lr=0.1, gamma=0.9, epsilon=1.0, epsilon_decay=0.995, epsilon_min=0.01):
         """
-        Initializes the Q-learning agent.
+        Initialize the agent.
 
         Args:
             lr (float): Learning rate.
             gamma (float): Discount factor.
-            epsilon (float): Initial exploration rate.
-            epsilon_decay (float): Decay rate for epsilon after each step.
-            epsilon_min (float): Minimum value for epsilon.
+            epsilon (float): Exploration rate.
+            epsilon_decay (float): Epsilon decay factor.
+            epsilon_min (float): Minimum epsilon.
         """
         self.lr = lr
         self.gamma = gamma
         self.epsilon = epsilon
         self.epsilon_decay = epsilon_decay
         self.epsilon_min = epsilon_min
-        self.q_table = {}  # Dictionary mapping state -> list of Q-values for each action.
-        self.n_actions = 3  # Actions: [straight, right turn, left turn].
+        self.q_table = {}  # Maps state tuple to a list of Q-values (one per action)
+        self.n_actions = 3
 
     def get_state(self, game: SnakeGame):
         """
-        Returns the current state as a tuple of 11 binary features:
-
-            1. Danger straight
-            2. Danger right
-            3. Danger left
-            4. Moving left
-            5. Moving right
-            6. Moving up
-            7. Moving down
-            8. Food left
-            9. Food right
-            10. Food up
-            11. Food down
+        Compute the state as an 11-dimensional binary tuple:
+            0: Danger straight
+            1: Danger right
+            2: Danger left
+            3: Moving left
+            4: Moving right
+            5: Moving up
+            6: Moving down
+            7: Food left
+            8: Food right
+            9: Food up
+            10: Food down
 
         Args:
             game (SnakeGame): The game instance.
 
         Returns:
-            tuple: The state representation.
+            tuple: The state.
         """
         head = game.head
         block_size = game.block_size
 
-        # Determine current moving direction.
-        dir_l = game.direction == 'LEFT'
-        dir_r = game.direction == 'RIGHT'
-        dir_u = game.direction == 'UP'
-        dir_d = game.direction == 'DOWN'
+        dir_left = game.direction == "LEFT"
+        dir_right = game.direction == "RIGHT"
+        dir_up = game.direction == "UP"
+        dir_down = game.direction == "DOWN"
 
-        # Calculate points in the relative directions.
-        if game.direction == 'RIGHT':
+        if game.direction == "RIGHT":
             point_straight = [head[0] + block_size, head[1]]
             point_right = [head[0], head[1] + block_size]
             point_left = [head[0], head[1] - block_size]
-        elif game.direction == 'LEFT':
+        elif game.direction == "LEFT":
             point_straight = [head[0] - block_size, head[1]]
             point_right = [head[0], head[1] - block_size]
             point_left = [head[0], head[1] + block_size]
-        elif game.direction == 'UP':
+        elif game.direction == "UP":
             point_straight = [head[0], head[1] - block_size]
             point_right = [head[0] + block_size, head[1]]
             point_left = [head[0] - block_size, head[1]]
-        elif game.direction == 'DOWN':
+        elif game.direction == "DOWN":
             point_straight = [head[0], head[1] + block_size]
             point_right = [head[0] - block_size, head[1]]
             point_left = [head[0] + block_size, head[1]]
 
-        # Danger detection.
         danger_straight = game._is_collision(point_straight)
         danger_right = game._is_collision(point_right)
         danger_left = game._is_collision(point_left)
 
-        # Food location relative to head.
         food = game.food
         food_left = food[0] < head[0]
         food_right = food[0] > head[0]
@@ -93,10 +87,10 @@ class Agent:
             int(danger_straight),
             int(danger_right),
             int(danger_left),
-            int(dir_l),
-            int(dir_r),
-            int(dir_u),
-            int(dir_d),
+            int(dir_left),
+            int(dir_right),
+            int(dir_up),
+            int(dir_down),
             int(food_left),
             int(food_right),
             int(food_up),
@@ -106,35 +100,31 @@ class Agent:
 
     def get_action(self, state):
         """
-        Returns an action based on the current state using an epsilon-greedy strategy.
+        Choose an action using epsilon-greedy.
 
         Args:
-            state (tuple): The current state.
+            state (tuple): Current state.
 
         Returns:
-            int: The chosen action (0, 1, or 2).
+            int: Action (0, 1, or 2).
         """
-        # Initialize Q-values for an unseen state.
         if state not in self.q_table:
             self.q_table[state] = [0] * self.n_actions
 
-        # Exploration vs. exploitation.
         if random.random() < self.epsilon:
-            action = random.randint(0, self.n_actions - 1)
-        else:
-            action = int(np.argmax(self.q_table[state]))
-        return action
+            return random.randint(0, self.n_actions - 1)
+        return int(np.argmax(self.q_table[state]))
 
     def train_short_memory(self, state, action, reward, next_state, done):
         """
-        Updates the Q-table for a single step using the Q-learning formula.
+        Perform a Q-learning update for one step.
 
         Args:
-            state (tuple): Previous state.
+            state (tuple): Current state.
             action (int): Action taken.
-            reward (int): Reward received.
-            next_state (tuple): State after taking the action.
-            done (bool): True if the game ended.
+            reward (float): Reward received.
+            next_state (tuple): Next state.
+            done (bool): Whether the episode is done.
         """
         if state not in self.q_table:
             self.q_table[state] = [0] * self.n_actions
@@ -142,29 +132,20 @@ class Agent:
             self.q_table[next_state] = [0] * self.n_actions
 
         predict = self.q_table[state][action]
-        target = reward
-        if not done:
-            target = reward + self.gamma * max(self.q_table[next_state])
+        target = reward if done else reward + self.gamma * max(self.q_table[next_state])
         self.q_table[state][action] = predict + self.lr * (target - predict)
 
-        # Decay epsilon to reduce exploration over time.
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
 
-    def save_model(self, file_name="qtable.npy"):
+    def save_model(self, file_name="qtable_trained.npy"):
         """
-        Saves the Q-table to a file.
-
-        Args:
-            file_name (str): Filename for the saved model.
+        Save the Q-table.
         """
         np.save(file_name, self.q_table)
 
-    def load_model(self, file_name="qtable.npy"):
+    def load_model(self, file_name="qtable_trained.npy"):
         """
-        Loads the Q-table from a file.
-
-        Args:
-            file_name (str): Filename from which to load the model.
+        Load the Q-table.
         """
         self.q_table = np.load(file_name, allow_pickle=True).item()
