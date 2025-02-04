@@ -27,6 +27,10 @@ class Linear_QNet(nn.Module):
     def save(self, file_name='model_dqn.pth'):
         torch.save(self.state_dict(), file_name)
 
+    def load(self, file_name='model_dqn.pth'):
+        self.load_state_dict(torch.load(file_name))
+        self.eval()
+
 
 class QTrainer:
     def __init__(self, model, lr, gamma):
