@@ -1,7 +1,11 @@
+import os
 import pygame
 import matplotlib.pyplot as plt
 from agent import Agent
 from game import SnakeGame
+
+# Read TRAIN_BEST_SCORE from the environment, if set; otherwise, use a high default.
+TRAIN_BEST_SCORE = int(os.environ.get("TRAIN_BEST_SCORE", "10"))
 
 
 def plot(scores, mean_scores):
@@ -51,6 +55,13 @@ def train():
         mean_score = total_score / agent.n_games
         mean_scores.append(mean_score)
         plot(scores, mean_scores)
+
+        # Check if we've reached the target best score.
+        if record >= TRAIN_BEST_SCORE:
+            print(f"Target record of {TRAIN_BEST_SCORE} reached. Stopping training.")
+            break
+
+    pygame.quit()
 
 
 if __name__ == "__main__":
