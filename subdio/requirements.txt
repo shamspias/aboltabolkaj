@@ -2,7 +2,7 @@ streamlit
 moviepy
 openai-whisper
 langdetect
-googletrans
+googletrans==4.0.0-rc1
 gTTS
 torch
 torchvision
