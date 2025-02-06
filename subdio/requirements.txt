@@ -1,0 +1,10 @@
+streamlit
+moviepy
+openai-whisper
+langdetect
+googletrans
+gTTS
+torch
+torchvision
+torchaudio
+setuptools-rust
