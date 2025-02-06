@@ -1,80 +1,97 @@
 import os
 import streamlit as st
-from src.video_to_subtitle import VideoToSubtitle
 import tempfile
+
+from src.video_to_subtitle import VideoToSubtitle
 
 
 def main():
-    st.title("Video to Subtitle + Translation App")
-    st.write("""
-    **Upload a video**, automatically get **subtitles (SRT)**, and optionally
-    get **translated TTS audio** in your chosen language.
-    """)
+    st.title("Video to Subtitles: Original + Translated")
 
-    # File uploader for video
     uploaded_video = st.file_uploader("Upload a video file", type=["mp4", "mov", "avi", "mkv"])
 
     # Whisper model selection
     model_name = st.selectbox(
         "Select Whisper model",
         ["tiny", "small", "medium", "large", "large-v2"],
-        index=1  # default "small"
+        index=1
     )
 
-    # Target language for TTS
+    # Target language for translation
     target_language = st.text_input(
-        "Enter target language code for translation (e.g. 'en', 'fr', 'es', 'hi')",
+        "Enter target language code (e.g., 'en' for English, 'fr' for French)",
         value="en"
     )
 
     if st.button("Process"):
         if uploaded_video is not None:
-            # Save uploaded video to a temporary file
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as temp_video_file:
-                temp_video_file.write(uploaded_video.read())
-                temp_video_path = temp_video_file.name
+            # Write uploaded file to a temporary location
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as temp_video:
+                temp_video.write(uploaded_video.read())
+                temp_video_path = temp_video.name
 
-            # Prepare paths for intermediate and output files
             temp_audio_path = os.path.join(tempfile.gettempdir(), "temp_extracted_audio.wav")
-            output_srt_path = os.path.join(tempfile.gettempdir(), "transcribed_subtitles.srt")
+            original_srt_path = os.path.join(tempfile.gettempdir(), "original_subtitles.srt")
+            translated_srt_path = os.path.join(tempfile.gettempdir(), "translated_subtitles.srt")
             translated_audio_path = os.path.join(tempfile.gettempdir(), "translated_audio.mp3")
 
-            # Create our VideoToSubtitle object
+            # Create instance
             v2s = VideoToSubtitle(model_name=model_name)
 
             try:
                 # Extract audio
                 v2s.extract_audio(temp_video_path, temp_audio_path)
 
-                # Transcribe
+                # Transcribe (original language)
                 v2s.transcribe(temp_audio_path)
 
-                # Generate SRT
-                v2s.generate_srt(output_srt_path)
-
-                # Combine the entire transcription text for translation + TTS
-                # (Optional: You can also chunk it by segment if needed)
-                full_transcript = "\n".join(
-                    seg["text"].strip() for seg in v2s.transcription_segments
+                # Generate SRT in the original language
+                v2s.generate_srt(
+                    segments=v2s.transcription_segments,
+                    output_srt_path=original_srt_path
                 )
 
-                translated_text = v2s.translate_text(full_transcript, target_language)
+                # Translate segments to the target language
+                translated_segments = v2s.translate_segments(
+                    v2s.transcription_segments,
+                    target_language=target_language
+                )
 
-                # Generate TTS audio of the translated text
-                v2s.generate_translated_audio(translated_text, target_language, translated_audio_path)
+                # Generate SRT in the target language
+                v2s.generate_srt(
+                    segments=translated_segments,
+                    output_srt_path=translated_srt_path
+                )
 
-                # Show success message
-                st.success("Processing completed.")
+                # Combine all translated text for TTS (optional)
+                full_translated_text = "\n".join(seg["text"] for seg in translated_segments)
 
-                # Provide download buttons for SRT and translated audio
-                with open(output_srt_path, "rb") as srt_file:
+                v2s.generate_translated_audio(
+                    text=full_translated_text,
+                    target_language=target_language,
+                    output_audio_path=translated_audio_path
+                )
+
+                st.success("Processing complete!")
+
+                # Provide download buttons
+                with open(original_srt_path, "rb") as f:
                     st.download_button(
-                        label="Download Subtitles (SRT)",
-                        data=srt_file,
-                        file_name="generated_subtitles.srt",
+                        label="Download Original Subtitles (SRT)",
+                        data=f,
+                        file_name="original_subtitles.srt",
                         mime="text/plain"
                     )
 
+                with open(translated_srt_path, "rb") as f:
+                    st.download_button(
+                        label="Download Translated Subtitles (SRT)",
+                        data=f,
+                        file_name="translated_subtitles.srt",
+                        mime="text/plain"
+                    )
+
+                # Audio player for the translated TTS
                 with open(translated_audio_path, "rb") as audio_file:
                     st.audio(audio_file, format="audio/mp3")
                     st.download_button(
@@ -84,14 +101,13 @@ def main():
                         mime="audio/mpeg"
                     )
             except Exception as e:
-                st.error(f"Error during processing: {e}")
+                st.error(f"An error occurred: {e}")
             finally:
-                # Cleanup temp files
+                # Cleanup temporary files
                 if os.path.exists(temp_video_path):
                     os.remove(temp_video_path)
                 if os.path.exists(temp_audio_path):
                     os.remove(temp_audio_path)
-                # We'll leave the output files so they can be downloaded by the user
         else:
             st.warning("Please upload a valid video file first.")
 
