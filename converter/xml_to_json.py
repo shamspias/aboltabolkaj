@@ -29,7 +29,7 @@ class XMLToJSONConverter:
 
         # Write JSON to file with indentation
         with open(output_file, "w", encoding=encoding) as f:
-            json.dump(xml_dict, f, indent=4)
+            json.dump(xml_dict, f, indent=4, ensure_ascii=False)
 
     def _element_to_dict(self, element: ET.Element) -> Dict[str, Any]:
         """
