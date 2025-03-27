@@ -22,18 +22,13 @@ class CryptoTradeCalculator:
         """
         Calculate and return trade details as a dictionary.
         """
-        # Calculate how much coin is bought
         coin_amount = self.investment / self.buy_price
-
-        # Calculate gross return from selling
         gross_return = coin_amount * self.sell_price
 
-        # Calculate trading fees on both buy and sell
         buy_fee = self.investment * (self.fee_percent / 100)
         sell_fee = gross_return * (self.fee_percent / 100)
         total_fees = buy_fee + sell_fee
 
-        # Net return and profit calculations
         net_return = gross_return - total_fees
         net_profit = net_return - self.investment
         percent_profit = (net_profit / self.investment) * 100
@@ -59,23 +54,24 @@ class CalculatorApp(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Monthly Crypto Trade Calculator")
-        self.setGeometry(100, 100, 650, 520)
+        self.setGeometry(100, 100, 680, 600)
 
-        # Track the current month and investment
+        # Track the current month, cumulative additional investment, and additional cost
         self.month_count = 0
         self.additional_investment_count = 0
+        self.additional_cost_count = 0
         self.current_investment = None
 
         self.setup_ui()
         self.apply_styles()
 
     def setup_ui(self):
-        # Title label
+        # 1. Title
         title_label = QLabel("Crypto Trade Calculator (Monthly Iterations)")
         title_label.setFont(QFont("Arial", 20, QFont.Bold))
         title_label.setAlignment(Qt.AlignCenter)
 
-        # Input fields
+        # 2. Inputs Group Box
         self.investment_input = QLineEdit()
         self.investment_input.setPlaceholderText("e.g., 1000")
 
@@ -88,11 +84,12 @@ class CalculatorApp(QWidget):
         self.fee_input = QLineEdit()
         self.fee_input.setPlaceholderText("Default is 0.10 (%)")
 
-        # NEW: Additional Investment field
         self.additional_investment_input = QLineEdit()
         self.additional_investment_input.setPlaceholderText("Add extra funds each month (e.g., 200)")
 
-        # Group box for inputs
+        self.additional_cost_input = QLineEdit()
+        self.additional_cost_input.setPlaceholderText("Monthly cost (e.g., 50)")
+
         inputs_group = QGroupBox("Trade Inputs")
         inputs_layout = QFormLayout()
         inputs_layout.addRow(QLabel("Investment (USDT):"), self.investment_input)
@@ -100,57 +97,64 @@ class CalculatorApp(QWidget):
         inputs_layout.addRow(QLabel("Sell Price (USD):"), self.sell_price_input)
         inputs_layout.addRow(QLabel("Fee Percent (%):"), self.fee_input)
         inputs_layout.addRow(QLabel("Additional Investment (USDT):"), self.additional_investment_input)
+        inputs_layout.addRow(QLabel("Additional Cost (USDT):"), self.additional_cost_input)
         inputs_group.setLayout(inputs_layout)
 
-        # Buttons
+        # 3. Buttons
         self.calculate_button = QPushButton("Calculate Next Month")
         self.calculate_button.clicked.connect(self.calculate_next_month)
 
         self.reset_button = QPushButton("Reset")
         self.reset_button.clicked.connect(self.reset_calculator)
 
-        # NEW: Month Count label
-        self.month_label = QLabel("Month Count: 0")
-
-        # NEW: Additional investment Count Label
-        self.additional_investment_label = QLabel("A.Investment Count: 0")
-
-        # Horizontal layout for buttons and month label
         button_layout = QHBoxLayout()
+        button_layout.addStretch()
         button_layout.addWidget(self.calculate_button)
         button_layout.addWidget(self.reset_button)
         button_layout.addStretch()
-        button_layout.addWidget(self.month_label)
-        button_layout.addWidget(self.additional_investment_label)
 
-        # Result display area
+        # 4. Statistics Group Box
+        self.month_label = QLabel("0")
+        self.additional_investment_label = QLabel("0")
+        self.additional_cost_label = QLabel("0")
+
+        stats_group = QGroupBox("Statistics")
+        stats_layout = QFormLayout()
+        stats_layout.addRow(QLabel("Month Count:"), self.month_label)
+        stats_layout.addRow(QLabel("A. Investment Count:"), self.additional_investment_label)
+        stats_layout.addRow(QLabel("A. Cost Count:"), self.additional_cost_label)
+        stats_group.setLayout(stats_layout)
+
+        # 5. Results Group Box
         self.result_display = QTextEdit()
         self.result_display.setReadOnly(True)
         self.result_display.setFont(QFont("Courier", 10))
 
-        # Group box for results
         results_group = QGroupBox("Calculation Results (Cumulative)")
         results_layout = QVBoxLayout()
         results_layout.addWidget(self.result_display)
         results_group.setLayout(results_layout)
 
-        # Main layout
+        # 6. Main Layout
         main_layout = QVBoxLayout()
         main_layout.addWidget(title_label)
         main_layout.addWidget(inputs_group)
         main_layout.addLayout(button_layout)
+        main_layout.addWidget(stats_group)
         main_layout.addWidget(results_group)
 
         self.setLayout(main_layout)
 
     def apply_styles(self):
-        # A stylesheet with better contrast and a subtle gray background
+        """
+        Stylesheet for a cleaner, modern look.
+        """
         self.setStyleSheet("""
             QWidget {
                 background-color: #F3F4F6; /* Light gray background */
                 font-family: "Segoe UI", Arial, sans-serif;
                 font-size: 14px;
-                color: #333333; /* Default text color */
+                color: #333333;
             }
             QGroupBox {
                 background-color: #FFFFFF;
@@ -188,7 +192,7 @@ class CalculatorApp(QWidget):
                 padding: 10px 20px;
                 border: none;
                 border-radius: 6px;
-                margin: 10px 0;
+                margin: 10px;
             }
             QPushButton:hover {
                 background-color: #005EA6;
@@ -205,14 +209,15 @@ class CalculatorApp(QWidget):
     def calculate_next_month(self):
         """
         Each press simulates the next month:
-        1. If first month, read investment from input field.
+        1. If first month, read investment from the input field.
         2. Add 'Additional Investment' to current investment.
-        3. Calculate net return for the month.
-        4. Update 'Month Count' and display results.
-        5. Set the base investment to the new net return for the next iteration.
+        3. Perform calculation.
+        4. Subtract 'Additional Cost' from the net return.
+        5. Update counters and display results.
+        6. Set the base investment for the next month.
         """
         try:
-            # If first calculation, read investment from the input field
+            # For the first calculation, read the initial investment
             if self.month_count == 0:
                 self.current_investment = float(self.investment_input.text())
 
@@ -221,42 +226,45 @@ class CalculatorApp(QWidget):
             fee_text = self.fee_input.text().strip()
             fee_percent = float(fee_text) if fee_text else 0.10
 
-            # Parse the additional investment (default to 0 if blank)
-            additional_investment_text = self.additional_investment_input.text().strip()
-            additional_investment = float(additional_investment_text) if additional_investment_text else 0.0
+            # Parse additional investment and cost
+            add_invest_text = self.additional_investment_input.text().strip()
+            additional_investment = float(add_invest_text) if add_invest_text else 0.0
+
+            add_cost_text = self.additional_cost_input.text().strip()
+            additional_cost = float(add_cost_text) if add_cost_text else 0.0
 
             # Validate inputs
             if (self.current_investment is None or self.current_investment < 0 or
                     buy_price <= 0 or sell_price <= 0 or fee_percent < 0 or
-                    additional_investment < 0):
+                    additional_investment < 0 or additional_cost < 0):
                 raise ValueError("All numeric inputs must be non-negative (and buy/sell > 0).")
 
             # Add the additional investment for this month
             self.current_investment += additional_investment
 
-            # Perform calculation
+            # Perform the trade calculation
             calculator = CryptoTradeCalculator(self.current_investment, buy_price, sell_price, fee_percent)
             result = calculator.calculate()
 
-            # Increment the month counter
+            # Increment counters
             self.month_count += 1
-            self.month_label.setText(f"Month Count: {self.month_count}")
+            self.month_label.setText(str(self.month_count))
 
-            # Increment the additional investment counter
             self.additional_investment_count += additional_investment
-            self.additional_investment_label.setText(f"A.Investment Count: {self.additional_investment_count}")
+            self.additional_investment_label.setText(str(self.additional_investment_count))
 
-            # Append result to the text display
+            self.additional_cost_count += additional_cost
+            self.additional_cost_label.setText(str(self.additional_cost_count))
+
+            # Append results to the display
             month_header = f"Month {self.month_count} Results:"
             result_text = "\n".join(f"{key}: {value}" for key, value in result.items())
             display_text = f"{month_header}\n{result_text}\n{'-' * 40}\n"
             self.result_display.append(display_text)
 
-            # Update current investment to the net return for the next month
-            new_investment = result["Net Return (USDT)"]
+            # Update current investment for next month by subtracting the additional cost
+            new_investment = result["Net Return (USDT)"] - additional_cost
             self.current_investment = new_investment
-
-            # Reflect the updated investment in the input field
             self.investment_input.setText(str(new_investment))
 
         except ValueError as e:
@@ -266,20 +274,24 @@ class CalculatorApp(QWidget):
 
     def reset_calculator(self):
         """
-        Resets the month count, current investment, input fields,
-        and the results display area.
+        Resets all counters, investment values, and clears input/output fields.
         """
         self.month_count = 0
         self.additional_investment_count = 0
+        self.additional_cost_count = 0
         self.current_investment = None
+
         self.investment_input.clear()
         self.buy_price_input.clear()
         self.sell_price_input.clear()
         self.fee_input.clear()
         self.additional_investment_input.clear()
+        self.additional_cost_input.clear()
         self.result_display.clear()
-        self.month_label.setText("Month Count: 0")
-        self.additional_investment_label.setText("A.Investment Count: 0")
+
+        self.month_label.setText("0")
+        self.additional_investment_label.setText("0")
+        self.additional_cost_label.setText("0")
 
 
 if __name__ == "__main__":
