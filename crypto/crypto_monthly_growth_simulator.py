@@ -59,10 +59,11 @@ class CalculatorApp(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Monthly Crypto Trade Calculator")
-        self.setGeometry(100, 100, 600, 500)
+        self.setGeometry(100, 100, 650, 520)
 
         # Track the current month and investment
         self.month_count = 0
+        self.additional_investment_count = 0
         self.current_investment = None
 
         self.setup_ui()
@@ -87,6 +88,10 @@ class CalculatorApp(QWidget):
         self.fee_input = QLineEdit()
         self.fee_input.setPlaceholderText("Default is 0.10 (%)")
 
+        # NEW: Additional Investment field
+        self.additional_investment_input = QLineEdit()
+        self.additional_investment_input.setPlaceholderText("Add extra funds each month (e.g., 200)")
+
         # Group box for inputs
         inputs_group = QGroupBox("Trade Inputs")
         inputs_layout = QFormLayout()
@@ -94,17 +99,29 @@ class CalculatorApp(QWidget):
         inputs_layout.addRow(QLabel("Buy Price (USD):"), self.buy_price_input)
         inputs_layout.addRow(QLabel("Sell Price (USD):"), self.sell_price_input)
         inputs_layout.addRow(QLabel("Fee Percent (%):"), self.fee_input)
+        inputs_layout.addRow(QLabel("Additional Investment (USDT):"), self.additional_investment_input)
         inputs_group.setLayout(inputs_layout)
 
         # Buttons
         self.calculate_button = QPushButton("Calculate Next Month")
         self.calculate_button.clicked.connect(self.calculate_next_month)
+
         self.reset_button = QPushButton("Reset")
         self.reset_button.clicked.connect(self.reset_calculator)
 
+        # NEW: Month Count label
+        self.month_label = QLabel("Month Count: 0")
+
+        # NEW: Additional investment Count Label
+        self.additional_investment_label = QLabel("A.Investment Count: 0")
+
+        # Horizontal layout for buttons and month label
         button_layout = QHBoxLayout()
         button_layout.addWidget(self.calculate_button)
         button_layout.addWidget(self.reset_button)
+        button_layout.addStretch()
+        button_layout.addWidget(self.month_label)
+        button_layout.addWidget(self.additional_investment_label)
 
         # Result display area
         self.result_display = QTextEdit()
@@ -188,14 +205,14 @@ class CalculatorApp(QWidget):
     def calculate_next_month(self):
         """
         Each press simulates the next month:
-        - Uses current investment if not the first month,
-          or reads from user input for the first month.
-        - Calculates net return.
-        - Updates investment field to net return for the next iteration.
-        - Appends results to the text area with a 'Month X' header.
+        1. If first month, read investment from input field.
+        2. Add 'Additional Investment' to current investment.
+        3. Calculate net return for the month.
+        4. Update 'Month Count' and display results.
+        5. Set the base investment to the new net return for the next iteration.
         """
         try:
-            # If first calculation, read investment from input field
+            # If first calculation, read investment from the input field
             if self.month_count == 0:
                 self.current_investment = float(self.investment_input.text())
 
@@ -204,10 +221,18 @@ class CalculatorApp(QWidget):
             fee_text = self.fee_input.text().strip()
             fee_percent = float(fee_text) if fee_text else 0.10
 
+            # Parse the additional investment (default to 0 if blank)
+            additional_investment_text = self.additional_investment_input.text().strip()
+            additional_investment = float(additional_investment_text) if additional_investment_text else 0.0
+
             # Validate inputs
-            if (self.current_investment is None or self.current_investment <= 0 or
-                    buy_price <= 0 or sell_price <= 0 or fee_percent < 0):
-                raise ValueError("All numeric inputs must be positive.")
+            if (self.current_investment is None or self.current_investment < 0 or
+                    buy_price <= 0 or sell_price <= 0 or fee_percent < 0 or
+                    additional_investment < 0):
+                raise ValueError("All numeric inputs must be non-negative (and buy/sell > 0).")
+
+            # Add the additional investment for this month
+            self.current_investment += additional_investment
 
             # Perform calculation
             calculator = CryptoTradeCalculator(self.current_investment, buy_price, sell_price, fee_percent)
@@ -215,11 +240,16 @@ class CalculatorApp(QWidget):
 
             # Increment the month counter
             self.month_count += 1
+            self.month_label.setText(f"Month Count: {self.month_count}")
+
+            # Increment the additional investment counter
+            self.additional_investment_count += additional_investment
+            self.additional_investment_label.setText(f"A.Investment Count: {self.additional_investment_count}")
 
             # Append result to the text display
             month_header = f"Month {self.month_count} Results:"
             result_text = "\n".join(f"{key}: {value}" for key, value in result.items())
-            display_text = f"{month_header}\n{result_text}\n{'-' * 30}\n"
+            display_text = f"{month_header}\n{result_text}\n{'-' * 40}\n"
             self.result_display.append(display_text)
 
             # Update current investment to the net return for the next month
@@ -240,12 +270,16 @@ class CalculatorApp(QWidget):
         and the results display area.
         """
         self.month_count = 0
+        self.additional_investment_count = 0
         self.current_investment = None
         self.investment_input.clear()
         self.buy_price_input.clear()
         self.sell_price_input.clear()
         self.fee_input.clear()
+        self.additional_investment_input.clear()
         self.result_display.clear()
+        self.month_label.setText("Month Count: 0")
+        self.additional_investment_label.setText("A.Investment Count: 0")
 
 
 if __name__ == "__main__":
