@@ -113,13 +113,15 @@ class CalculatorApp(QWidget):
         self.setLayout(main_layout)
 
     def apply_styles(self):
-        # A stylesheet for a modern, clean look
+        # A stylesheet with better contrast and a subtle gray background
         self.setStyleSheet("""
             QWidget {
-                background-color: #F0F2F5;
+                background-color: #F3F4F6; /* Light gray background for the window */
                 font-family: "Segoe UI", Arial, sans-serif;
                 font-size: 14px;
+                color: #333333; /* Default text color */
             }
+
             QGroupBox {
                 background-color: #FFFFFF;
                 border: 1px solid #CCCCCC;
@@ -131,12 +133,15 @@ class CalculatorApp(QWidget):
                 left: 15px;
                 top: 5px;
             }
+
             QLabel {
                 font-size: 14px;
                 font-weight: 500;
             }
+
             QLineEdit {
                 background-color: #FFFFFF;
+                color: #000000; /* Text color in the line edits */
                 border: 1px solid #CCCCCC;
                 border-radius: 4px;
                 padding: 6px;
@@ -144,6 +149,11 @@ class CalculatorApp(QWidget):
             QLineEdit:hover {
                 border: 1px solid #999999;
             }
+            /* Placeholder text color */
+            QLineEdit:placeholderText {
+                color: #777777;
+            }
+
             QPushButton {
                 background-color: #0078D7;
                 color: #FFFFFF;
@@ -157,8 +167,10 @@ class CalculatorApp(QWidget):
             QPushButton:hover {
                 background-color: #005EA6;
             }
+
             QTextEdit {
                 background-color: #FFFFFF;
+                color: #000000;
                 border: 1px solid #CCCCCC;
                 border-radius: 4px;
                 padding: 6px;
@@ -176,6 +188,7 @@ class CalculatorApp(QWidget):
             sell_price = float(self.sell_price_input.text())
             fee_text = self.fee_input.text().strip()
             fee_percent = float(fee_text) if fee_text else 0.10
+            fee_percent = fee_percent * 2
 
             # Validate inputs
             if investment <= 0 or buy_price <= 0 or sell_price <= 0 or fee_percent < 0:
