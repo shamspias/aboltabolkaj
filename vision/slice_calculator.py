@@ -1,7 +1,7 @@
 import sys
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QLabel, QLineEdit,
-    QVBoxLayout, QHBoxLayout, QPushButton, QMessageBox
+    QVBoxLayout, QHBoxLayout, QPushButton, QMessageBox, QCheckBox
 )
 from PyQt5.QtCore import Qt
 
@@ -14,12 +14,16 @@ class SliceCalculator:
         self.slice_height = slice_height
         self.overlap_percent = overlap_percent / 100
 
-    def calculate(self):
+    def calculate(self, horizontal=True, vertical=True):
         stride_w = self.slice_width * (1 - self.overlap_percent)
         stride_h = self.slice_height * (1 - self.overlap_percent)
 
-        num_slices_horizontal = int((self.img_width - self.slice_width) / stride_w) + 1
-        num_slices_vertical = int((self.img_height - self.slice_height) / stride_h) + 1
+        num_slices_horizontal = (
+            int((self.img_width - self.slice_width) / stride_w) + 1 if horizontal else 1
+        )
+        num_slices_vertical = (
+            int((self.img_height - self.slice_height) / stride_h) + 1 if vertical else 1
+        )
 
         total_slices = num_slices_horizontal * num_slices_vertical
 
@@ -49,6 +53,17 @@ class SliceCalcApp(QWidget):
         layout.addLayout(self._create_input_layout('Slice Width:', self.slice_width_input))
         layout.addLayout(self._create_input_layout('Slice Height:', self.slice_height_input))
         layout.addLayout(self._create_input_layout('Overlap (%):', self.overlap_input))
+
+        # Checkboxes for horizontal/vertical slices
+        self.horizontal_checkbox = QCheckBox('Horizontal Slices')
+        self.horizontal_checkbox.setChecked(True)
+        self.vertical_checkbox = QCheckBox('Vertical Slices')
+        self.vertical_checkbox.setChecked(True)
+
+        checkbox_layout = QHBoxLayout()
+        checkbox_layout.addWidget(self.horizontal_checkbox)
+        checkbox_layout.addWidget(self.vertical_checkbox)
+        layout.addLayout(checkbox_layout)
 
         # Calculate Button
         calc_btn = QPushButton('Calculate')
@@ -80,8 +95,11 @@ class SliceCalcApp(QWidget):
             if not (0 <= overlap < 100):
                 raise ValueError('Overlap percentage must be between 0 and 100.')
 
+            horizontal = self.horizontal_checkbox.isChecked()
+            vertical = self.vertical_checkbox.isChecked()
+
             calculator = SliceCalculator(img_w, img_h, slice_w, slice_h, overlap)
-            hor_slices, ver_slices, total_slices = calculator.calculate()
+            hor_slices, ver_slices, total_slices = calculator.calculate(horizontal, vertical)
 
             self.result_label.setText(
                 f'Horizontal slices: {hor_slices}\n'
