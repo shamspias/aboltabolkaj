@@ -1,9 +1,7 @@
-# green_api_echo_bot.py
 """A minimal yet production‑grade wrapper for Green‑API and an example echo bot
 that replies with "Text received" to every incoming text message.
 
-Author: <Your Name>
-Since : 2024‑04‑18
+Author: SHAMSUDDIN AHMED
 
 *Written to a standard that makes 20‑year senior engineers nod approvingly.*
 """
